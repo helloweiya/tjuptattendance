@@ -1,0 +1,22 @@
+# Rust cache
+/target
+Cargo.lock
+
+# local file(s)
+*_local*
+
+# temp dir
+temp/
+
+# cache dir
+cache/
+
+# output dir
+output/
+
+# publish dir
+publish/
+
+# macOS file
+.DS_Store
+./localized
