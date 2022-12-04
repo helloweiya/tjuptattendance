@@ -20,3 +20,6 @@ publish/
 # macOS file
 .DS_Store
 ./localized
+
+# config file
+config.toml

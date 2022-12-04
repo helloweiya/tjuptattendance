@@ -6,7 +6,7 @@ description = "TJUPT Attendance"
 default-run = "tjuptatt"
 readme = "README.md"
 authors = ["AzureQAQ <azureqaq@gmail.com>"]
-license = "MIT OR Apache-2.0"
+license = "Apache-2.0"
 keywords = ["cli", "bin"]
 categories = ["command-line-utilities"]
 build =  "build.rs"
@@ -23,23 +23,23 @@ path = "./src/libs/mod.rs"
 log = "0.4.17"
 anyhow = "1.0.65"
 simple_logger = { version = "4.0.0", default-features = false, features = ["colors"] }
-# "rt-multi-thread", "time", "process", "macros", "parking_lot", "sync", "io-util", "fs"
 tokio = { version = "1.21.0", features = ["rt-multi-thread", "macros", "parking_lot"], default-features = false }
-
+clap = {version = "4.0.10", features = ["wrap_help", "std", "color", "cargo", "suggestions"], default-features = false }
+serde = {version = "1.0.145", features = ["derive"] }
+toml = "0.5.9"
+time = { version = "0.3.17", features = ["serde"] }
+ahash = { version = "0.8.0", features = ["std", "serde"] }
+lazy_static = "1.4.0"
+reqwest = { version = "0.11.12", features = ["cookies", "json"] }
+reqwest_cookie_store = "0.5.0"
+platform-dirs = "0.3.0"
 
 # indicatif = "0.17.1"
 # console = "0.15.2"
 # dialoguer = "0.10.2"
 # scraper = "0.13.0"
-# clap = {version = "4.0.10", features = ["wrap_help", "std", "color", "suggestions", "cargo"], default-features = false }
-# serde = {version = "1.0.145", features = ["derive"] }
-# toml = "0.5.9"
-# platform-dirs = "0.3.0"
-# reqwest_cookie_store = "0.5.0"
 # serde_json = "1.0.85"
-# reqwest = { version = "0.11.12", features = ["cookies", "json"] }
 # regex = { version = "1.6.0", features = ["std"] }
-# ahash = { version = "0.8.0", features = ["std", "compile-time-rng"] }
 
 
 [profile.release]
