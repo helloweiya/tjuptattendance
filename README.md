@@ -33,7 +33,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 ## 命令参数
 ### 参数
-- `--init`: 初始化，创建默认配置文件及其夫文件夹，创建保存cookie的文件夹
+- `--init`: 初始化，创建默认配置文件及其父文件夹，创建保存cookie的文件夹
 - `--uninstall`: 卸载，删除由`--init`所创建的文件和文件夹
 - `--user`: 从命令行获取用户信息运行，格式: `--user id1 pwd1 --user id2 pwd2 ...` 此种方式不需要 `--init` 即可正常使用，不会留下任何文件
 - `--retry`: 签到重试次数，必须与 `--user` 一起使用
@@ -49,7 +49,56 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 ## 配置文件格式
 
-可以参考配置文件模版: [config模版](/config_template.toml)
+可以参考配置文件模版: [配置文件模版](https://github.com/azureqaq/tjuptattendance/blob/master/config_template.toml)
+
+```toml
+# 实例配置文件, 展示高级设置
+
+# 在此填写用户信息，可以指定多个
+[[users]]
+# 是否开启，如果关闭则不会对此用户进行签到
+# 从命令行快速添加的默认是 true
+enable = false
+# 邮箱地址
+# 用来发送邮件提醒
+email = "asd@qq.com"
+# 用户的登录名
+id = "user_id"
+# 用户的密码
+pwd = "user_pwd"
+# 网络延迟(ms) 范围 0~1000ms
+delay = 50
+# 签到时间点
+# 如果不指定则是马上签到，如果指定则会等到对应时间
+# 可以设置多个时间点，但是只有接下来最近的那一个会执行
+# 格式：时分秒纳秒 二十四小时制
+points_in_time = [ [0,0,0,0], [6,0,0,0] ]
+
+# 全局设置
+[global]
+# 网络延迟，如果用户设置中未指定，则会使用此值
+# 范围 0~1000ms
+network_delay = 50
+
+# 邮件设置
+# 用来发送邮件提醒
+[global.emailconf]
+# 是否开启邮件提醒
+# 注意：就算开启了但是用户未填写邮箱，还是不会发送的
+# 如果想要使用此功能，请提前进行测试
+enable = false
+# 登陆名
+user = "登录名"
+# 发件人，可以不指定
+sender = "发件人"
+# 登陆密码
+pwd = "pwd"
+
+# smtp设置，如果不指定则是 smtp.qq.com
+host = "smtp.qq.com"
+# 端口，如果不指定则是465
+port = 465
+```
 
 - `[[users]]`: 用来设置用户信息
 - `[global]`: 全局配置信息

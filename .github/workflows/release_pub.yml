@@ -19,7 +19,7 @@ jobs:
           # (optional) Path to changelog.
           changelog: CHANGELOG.md
           # (required) GitHub token for creating GitHub Releases.
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.RELEASE }}
 
   upload-assets:
     strategy:
@@ -49,4 +49,4 @@ jobs:
           zip: windows
           include: LICENSE,README.md
           # (required) GitHub token for uploading assets to GitHub Releases.
-          token: ${{ secrets.RELEASE_TOKEN }}
+          token: ${{ secrets.RELEASE }}
