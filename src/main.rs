@@ -8,8 +8,8 @@ async fn main() {
         .with_level(log::LevelFilter::Debug)
         .with_module_level("reqwest", log::LevelFilter::Error)
         .with_module_level("cookie_store", log::LevelFilter::Error)
-        // .with_module_level("selectors", log::LevelFilter::Error)
-        // .with_module_level("html5ever", log::LevelFilter::Error)
+        .with_module_level("selectors", log::LevelFilter::Error)
+        .with_module_level("html5ever", log::LevelFilter::Error)
         .init()
         .unwrap();
 

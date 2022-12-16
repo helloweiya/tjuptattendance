@@ -1,13 +1,14 @@
 //! 主要逻辑
 
 use crate::{
-    command::DIRS,
+    command::{tjurls, DIRS},
     config::{ConfigFile, UserConfig},
 };
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
-use reqwest::{header::HeaderMap, Client, ClientBuilder, Url};
+use reqwest::{header::HeaderMap, redirect, Client, ClientBuilder};
 use reqwest_cookie_store::{CookieStore, CookieStoreMutex};
+use scraper::{Html, Selector};
 use std::{
     fs::{remove_dir_all, File},
     io::{BufReader, Write},
@@ -15,7 +16,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use time::Time;
+use time::{OffsetDateTime, PrimitiveDateTime, Time, UtcOffset};
 
 lazy_static! {
     static ref HEADER: HeaderMap = {
@@ -30,6 +31,16 @@ lazy_static! {
         );
         head
     };
+    static ref TIMEOFFSET: UtcOffset = UtcOffset::from_hms(8, 0, 0).unwrap();
+
+    // //input[@type="radio"]
+    // //input[@type="submit"]
+    static ref INPUT_RADIO_SELE: Selector = Selector::parse(r#"input[type="radio"]"#).unwrap();
+    // static ref INPUT_SUBMIT_SELE: Selector = Selector::parse(r#"input[type="submit"]"#).unwrap();
+
+    static ref TD: Selector = Selector::parse(r#"td[id="outer"]"#).unwrap();
+    static ref IMG: Selector = Selector::parse("img").unwrap();
+
 }
 
 /// tjupt user
@@ -64,6 +75,7 @@ impl TjuPtUser {
             .cookie_provider(cookie.clone())
             .connection_verbose(false)
             .default_headers(HEADER.clone())
+            .redirect(redirect::Policy::limited(3))
             .build()
             .unwrap();
 
@@ -82,8 +94,6 @@ impl TjuPtUser {
             cookie_path,
         }
     }
-
-    // async fn
 
     /// 加载cookie
     ///
@@ -106,36 +116,124 @@ impl TjuPtUser {
         Ok(())
     }
 
-    /// 登陆
-    async fn login(&self) -> Result<()> {
-        // 尝试加载cookie
-        let _ = self.load_cookie();
-        // TODO
-        let res = self
+    /// 在不加载cookie的情况下登陆
+    ///
+    /// 返回签到页面的String
+    async fn login(&self) -> Result<String> {
+        let _r = self.client.get(tjurls::LOGIN).send().await?;
+        if !self
             .client
-            .get("https://www.baidu.com/")
+            .post(tjurls::TAKELOGIN)
+            // .query(&[("returnto", "attendance.php")])
+            .form(&[
+                ("username", self.config.id()),
+                ("password", self.config.pwd()),
+                ("logout", "7days"),
+                ("returnto", "attendance.php"),
+            ])
             .send()
             .await?
-            .text()
-            .await?;
-        log::debug!("{} 获得的数量: {}", self.config.id(), res.len());
+            .status()
+            .is_success()
+        {
+            return Err(anyhow!("请检查网络"));
+        }
+        let req = self.client.get(tjurls::ATTENDANCE).send().await?;
+        if !req.url().as_str().contains("login.php") {
+            let content = req.text().await?;
+            Ok(content)
+        } else {
+            Err(anyhow!("发送登陆请求失败"))
+        }
+    }
 
-        Ok(())
+    /// 登陆
+    /// 在这之前加载过cookie了
+    async fn get_att_html(&self) -> Result<String> {
+        let req = self.client.get(tjurls::ATTENDANCE).send().await?;
+        // 先获取签到页面，检查链接
+        if req.url().as_str().contains("login.php") {
+            // 如果重定向了说明需要登陆
+            self.login().await
+        } else {
+            // 如果成功，那么就直接ok
+            let content = req.text().await?;
+            Ok(content)
+        }
     }
 
     /// 签到一次
+    ///
+    /// 但是不在这里加载cookie
+    /// 也不在这登录
     async fn att_onece_now(&self) -> Result<()> {
-        // TODO
-        self.login().await?;
+        let Ok(html) = self.get_att_html().await else {
+            return Err(anyhow!("{} 登录失败", self.config.id()));
+        };
+
+        // 解析网页，获取选项信息
+        let doc = Html::parse_document(&html);
+
+        // //input[@type="radio"]s
+        let radio = doc.select(&INPUT_RADIO_SELE);
+
+        // 选项们
+        let answers = radio
+            .into_iter()
+            .filter_map(|e| {
+                let Some(name) = e.next_sibling()  else {
+                return None;
+            };
+                let Some(name) = name.value().as_text() else {
+                return None;
+            };
+                // let name = name.to_string();
+
+                let Some(value) = e.value().attr("value") else {
+                return None;
+            };
+
+                Some((name, value))
+            })
+            .collect::<Vec<_>>();
+
+        // 图片
+        let Some(img) = doc.select(&TD).next().
+            and_then(|e|e.select(&IMG).next())
+            .and_then(|e| e.value().attr("src") ) 
+        else {
+            return Err(anyhow!("无法定位图片"));
+        };
+
+        let img_url = format!("https://tjupt.org{}", img);
+
+        log::debug!("{}", img_url);
+
+        for (x, y) in answers {
+            log::debug!("{}, {}", x.to_string().as_str(), y);
+        }
+
         Ok(())
     }
 
     /// 签到
     ///
     /// 不会检查是否开启
+    ///
+    /// 尝试加载cookie一次
+    ///
+    /// 并立即签到
     pub async fn att_now(&self) -> Result<()> {
+        // 这里加载一次cookie就好
+        let _res = self.load_cookie();
+
         let retry_times = self.config.retry();
         for i in 0..retry_times {
+            // 此时登陆
+            // if let Err(e) = self.get_att_html().await {
+            //     log::debug!("登录失败: {}, Error: {}", self.config.id(), e);
+            //     continue;
+            // }
             if let Err(e) = self.att_onece_now().await {
                 log::debug!(
                     "{} 签到失败 {}/{} Error: {}",
@@ -150,7 +248,52 @@ impl TjuPtUser {
                 return Ok(());
             }
         }
-        Err(anyhow!("签到失败"))
+        Err(anyhow!("签到失败: {}", self.config.id()))
+    }
+
+    /// 等待到时间点进行签到
+    pub async fn att_on_time(&mut self) -> Result<()> {
+        // 先进性排序
+        self.sort_points_in_time();
+
+        // 这里加载一次cookie就好
+        let _res = self.load_cookie();
+
+        let retry_times = self.config.retry();
+
+        // let mut need_wait = true;
+
+        // 等待到时间 (少等2秒)
+        tokio::time::sleep(std::time::Duration::
+            // from_micros(self.get_next_att_duration().abs().whole_microseconds() as u64 - (self.config.delay() * 1000) as u64)
+            from_secs_f64(
+            (self.get_next_att_duration().whole_seconds().abs()
+                - (self.config.delay() / 1000) as i64) as f64,
+        ))
+        .await;
+
+        for i in 0..retry_times {
+            // 此时登陆
+            // if let Err(e) = self.get_att_html().await {
+            //     log::debug!("登录失败: {}, Error: {}", self.config.id(), e);
+            //     continue;
+            // }
+
+            if let Err(e) = self.att_onece_now().await {
+                log::debug!(
+                    "{} 签到失败 {}/{} Error: {}",
+                    self.config.id(),
+                    i + 1,
+                    retry_times,
+                    e
+                );
+                continue;
+            } else {
+                log::info!("签到成功: {}", self.config.id());
+                return Ok(());
+            }
+        }
+        Err(anyhow!("签到失败: {}", self.config.id()))
     }
 
     /// 清除cookie
@@ -166,19 +309,6 @@ impl TjuPtUser {
         &self.client
     }
 
-    pub async fn ask_url<S>(&self, url: S) -> Result<String>
-    where
-        S: AsRef<str>,
-    {
-        let url: Url = url.as_ref().parse()?;
-
-        let result = self.client.get(url).send().await?.text().await?;
-
-        Ok(result)
-    }
-}
-
-impl TjuPtUser {
     /// 保存 cookie 到 cookie_path
     ///
     /// 不为 cookiepath 为None 的保存
@@ -194,10 +324,56 @@ impl TjuPtUser {
                 lock.save_json(&mut file)
                     .map_err(|e| anyhow!("无法写入cookie error: {}", e))?;
             }
-
-            // log::debug!("保存cookie: {}", self.config.id(),);
         }
         Ok(())
+    }
+
+    /// 对points_in_time进行排序
+    pub fn sort_points_in_time(&mut self) {
+        if let Some(ref mut points_in_time) = self.config.points_in_time {
+            points_in_time.sort();
+        }
+    }
+
+    /// 获取距离下次签到的时间间隔
+    ///
+    /// 调用前要进行排序的
+    pub fn get_next_att_duration(&self) -> time::Duration {
+        let no_dur = time::Duration::seconds_f32(0.0);
+        let now = get_date_time();
+        let mut next_time = None;
+
+        if let Some(timepoints) = self.config.points_in_time() {
+            for point in timepoints {
+                if point >= &now.time() {
+                    next_time = Some(point);
+                    break;
+                }
+            }
+
+            if let Some(next_time) = next_time {
+                // 如果今天有下次签到的时间点
+                log::info!("{} 预定时间点: {}", self.config.id(), next_time);
+                *next_time - now.time()
+            } else {
+                // 如果是之前的时间点则是第二天的第一个
+                let Some(next_date) = now.date().next_day() else {
+                    log::warn!("无法获取下一天的日期");
+                    return  no_dur;
+                };
+
+                let Some(first_point) = self.config.points_in_time().and_then(|t| t.get(0) ) else {
+                    return no_dur;
+                };
+
+                let next_date_time =
+                    PrimitiveDateTime::new(next_date, *first_point).assume_offset(*TIMEOFFSET);
+                log::warn!("{} 选中明天的时间点: {}", self.config.id(), next_date_time);
+                next_date_time - now
+            }
+        } else {
+            no_dur
+        }
     }
 }
 
@@ -220,6 +396,7 @@ pub fn initialization() -> Result<()> {
             std::fs::create_dir_all(p)?;
         }
     }
+
     // 创建默认配置文件
     let config_path = DIRS.config_path();
     if !config_path.is_file() {
@@ -227,6 +404,7 @@ pub fn initialization() -> Result<()> {
         let mut file = File::create(config_path)?;
         let _ = file.write(toml::to_string(&ConfigFile::default())?.as_bytes())?;
     }
+
     Ok(())
 }
 
@@ -238,6 +416,7 @@ pub fn uninstall() -> Result<()> {
             remove_dir_all(p)?;
         }
     }
+
     Ok(())
 }
 
@@ -282,6 +461,7 @@ pub async fn attendance() -> Result<()> {
                 Some(delay),
                 Some(vec![points_in_time]),
             );
+
             users_vec.push(TjuPtUser::from_config::<&Path>(user, None));
         }
 
@@ -307,6 +487,7 @@ pub async fn attendance() -> Result<()> {
                 None,
                 None,
             );
+
             users_vec.push(TjuPtUser::from_config::<&Path>(user, None));
         }
 
@@ -369,7 +550,7 @@ pub async fn attendance() -> Result<()> {
             .get_users()
             .into_iter()
             .filter_map(|mut u| {
-                u.delay_when_read(g_conf);
+                u.update_delay(g_conf);
                 if u.enable() {
                     Some(TjuPtUser::from_config(u, Some(DIRS.state_dir())))
                 } else {
@@ -379,8 +560,7 @@ pub async fn attendance() -> Result<()> {
             .collect::<Vec<TjuPtUser>>();
 
         // 签到
-        // TODO 这里应该不是马上签到
-        att_all_now(users).await;
+        att_all_on_time(users).await;
     }
     Ok(())
 }
@@ -399,7 +579,7 @@ async fn att_all_now(users: Vec<TjuPtUser>) {
         };
 
         if let Err(e) = i {
-            log::error!("签到失败: {}", e);
+            log::error!("{}", e);
             continue;
         }
     }
@@ -407,8 +587,22 @@ async fn att_all_now(users: Vec<TjuPtUser>) {
 
 /// 批量签到-定时
 async fn att_all_on_time(users: Vec<TjuPtUser>) {
-    att_all_now(users).await;
-    log::debug!("按照配置文件定时签到");
+    // 签到
+    let mut hands = vec![];
+    for mut i in users.into_iter() {
+        hands.push(tokio::spawn(async move { i.att_on_time().await }));
+    }
+
+    for i in hands.into_iter() {
+        let Ok(i) = i.await else {
+             continue;
+         };
+
+        if let Err(e) = i {
+            log::error!("{}", e);
+            continue;
+        }
+    }
 }
 
 /// 从user——vec转users
@@ -427,4 +621,9 @@ fn get_users_vec(users: Vec<&str>) -> Vec<(&str, &str)> {
         users_res.push((*id, *pwd));
     }
     users_res
+}
+
+/// 获取日期时间
+pub fn get_date_time() -> OffsetDateTime {
+    OffsetDateTime::now_utc().to_offset(*TIMEOFFSET)
 }

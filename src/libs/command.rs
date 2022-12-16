@@ -7,6 +7,16 @@ use std::path::{Path, PathBuf};
 /// 配置文件名
 pub const CONFIG_FILENAME: &str = "config.toml";
 
+/// 链接们
+pub mod tjurls {
+    /// 登陆链接
+    pub const LOGIN: &str = "https://tjupt.org/login.php";
+    /// 签到页面
+    pub const ATTENDANCE: &str = "https://tjupt.org/attendance.php";
+    /// post的登陆url
+    pub const TAKELOGIN: &str = "https://tjupt.org/takelogin.php";
+}
+
 /// 文件位置配置
 pub struct Dirs {
     config_dir: PathBuf,

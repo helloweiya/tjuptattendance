@@ -142,7 +142,7 @@ pub struct UserConfig {
     email: Option<String>,
     retry: Option<u8>,
     delay: Option<u32>,
-    points_in_time: Option<Vec<Time>>,
+    pub points_in_time: Option<Vec<Time>>,
 }
 
 impl PartialEq for UserConfig {
@@ -172,10 +172,14 @@ impl UserConfig {
         }
     }
 
+    pub fn pwd(&self) -> &str {
+        self.pwd.as_ref()
+    }
+
     /// 更新delay
     ///
     /// 配置文件操作时不能用
-    pub fn delay_when_read(&mut self, global_conf: &GlobalConfig) {
+    pub fn update_delay(&mut self, global_conf: &GlobalConfig) {
         self.delay = Some(match self.delay {
             None => global_conf.network_delay(),
             Some(n) => n,
@@ -188,6 +192,17 @@ impl UserConfig {
 
     pub fn enable(&self) -> bool {
         self.enable
+    }
+
+    pub fn points_in_time(&self) -> Option<&[Time]> {
+        self.points_in_time.as_deref()
+    }
+
+    pub fn delay(&self) -> u64 {
+        match self.delay {
+            Some(n) => n as u64,
+            None => 0,
+        }
     }
 }
 
@@ -318,13 +333,3 @@ impl Display for GlobalConfig {
         )
     }
 }
-
-// impl Default for GlobalConfig {
-//     fn default() -> Self {
-//         Self {
-//             // 默认 50ms
-//             network_delay: 0,
-//             emailconf: EmailConfig::default(),
-//         }
-//     }
-// }

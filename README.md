@@ -12,11 +12,10 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 ## 目标
 - [x] 命令行配置
-- [x] 命令行定时签到
-- [x] cookie 保存
+- [x] 定时签到
+- [x] cookies 保存
 - [x] 配置文件解析(高级功能)
-- [ ] 签到实现的默认方式
-- [ ] 可自定义的签到实现 
+- [ ] 实现签到
 - [ ] 更详细的配置文件及自定义功能
 
 

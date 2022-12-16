@@ -31,7 +31,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
             "\
 {before-help}{name} {version}
 {author-with-newline}{about-with-newline}
-{usage-heading} {usage}
+{usage-heading} {usage}tjuptatt [<subcommand>] [<option> <arg> ...]
 
 {all-args}{after-help}",
         )
