@@ -33,7 +33,7 @@ lazy_static = "1.4.0"
 reqwest = { version = "0.11.12", features = ["cookies", "json"] }
 reqwest_cookie_store = "0.5.0"
 platform-dirs = "0.3.0"
-scraper = "0.13.0"
+scraper = "0.14.0"
 
 # indicatif = "0.17.1"
 # console = "0.15.2"
