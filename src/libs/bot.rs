@@ -209,8 +209,13 @@ impl TjuPtUser {
 
         log::debug!("获取的图片链接: {}", img_url);
 
-        for (x, y) in answers {
-            log::debug!("{}, {}", x.to_string().as_str(), y);
+        for (x, y) in answers.iter() {
+            log::debug!("选项: {}, {}", x.to_string().as_str(), y);
+        }
+
+        if answers.is_empty() {
+            // 如果是空的，说明签到完了，或者需要补签
+            return Err(anyhow!("已经签到，或需要补签"));
         }
 
         Ok(())
