@@ -205,7 +205,9 @@ impl TjuPtUser {
 
         let img_url = format!("https://tjupt.org{}", img);
 
-        log::debug!("{}", img_url);
+        // TODO: 检查签到状态
+
+        log::debug!("获取的图片链接: {}", img_url);
 
         for (x, y) in answers {
             log::debug!("{}, {}", x.to_string().as_str(), y);
