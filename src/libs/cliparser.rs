@@ -91,42 +91,6 @@ AzureQAQ's Blog: https://www.3moredays.com/
                 .requires("user"),
         )
         .arg(
-            Arg::new("time")
-                .long("time")
-                .short('t')
-                .help("设定时间点")
-                .long_help(
-                    "\
-设定时间点
-注意：时间点设定后，程序回等待到当天的指定时间点才启动
-如果设定之前的时间，则会等到下一天
-请经过测试后，再用相同配置使用此功能",
-                )
-                .action(ArgAction::Set)
-                .num_args(3)
-                .value_parser(value_parser!(u8).range(0..=60))
-                .requires("user"),
-        )
-        .arg(
-            Arg::new("delay")
-                .long("delay")
-                .short('d')
-                .help("网络延迟(ms)")
-                .long_help(
-                    "\
-为了平衡网络延迟，设定提前的毫秒数
-请不要设定得太大，否则无法实现TOP10的签到
-如果不追求速度，则可以忽略此选项
-范围: 0~1000 ms",
-                )
-                .action(ArgAction::Set)
-                .num_args(1)
-                .value_parser(value_parser!(u32).range(0..=1000))
-                .default_value("0")
-                .requires("user")
-                .requires("time"),
-        )
-        .arg(
             Arg::new("file")
                 .long("file")
                 .short('f')

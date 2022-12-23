@@ -23,11 +23,10 @@ path = "./src/libs/mod.rs"
 log = "0.4.17"
 anyhow = "1.0.65"
 simple_logger = { version = "4.0.0", default-features = false, features = ["colors"] }
-tokio = { version = "1.21.0", features = ["rt-multi-thread", "macros", "parking_lot", "time"], default-features = false }
+tokio = { version = "1.21.0", features = ["rt-multi-thread", "macros", "parking_lot"], default-features = false }
 clap = {version = "4.0.10", features = ["wrap_help", "std", "color", "cargo", "suggestions"], default-features = false }
 serde = {version = "1.0.145", features = ["derive"] }
 toml = "0.5.9"
-time = { version = "0.3.17", features = ["serde"] }
 ahash = { version = "0.8.0", features = ["std", "serde"] }
 lazy_static = "1.4.0"
 reqwest = { version = "0.11.12", features = ["cookies", "json"] }
