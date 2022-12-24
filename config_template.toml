@@ -12,14 +12,10 @@ email = "asd@qq.com"
 id = "user_id"
 # 用户的密码
 pwd = "user_pwd"
-# 重试次数
-retry = 1
 
 # 全局设置
 [global]
-# 网络延迟，如果用户设置中未指定，则会使用此值
-# 范围 0~1000ms
-retry = 3
+retry = 1
 
 # 邮件设置
 # 用来发送邮件提醒
@@ -39,4 +35,3 @@ pwd = "pwd"
 host = "smtp.qq.com"
 # 端口，如果不指定则是465
 port = 465
-
