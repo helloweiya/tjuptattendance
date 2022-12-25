@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Result};
 use bytes::Bytes;
 use dssim::{Dssim, DssimImage, ToRGBAPLU};
+use image::ImageFormat;
 use imgref::Img;
 use load_image::ImageData;
 use reqwest::Client;
@@ -207,13 +208,11 @@ fn reseize_pic(pic1: Bytes) -> Result<Bytes> {
     let mut reader = image::io::Reader::new(Cursor::new(pic1));
     reader.set_format(image::ImageFormat::Jpeg);
     let img = reader.decode()?;
-    let img = img.resize(270, 400, image::imageops::FilterType::Nearest);
 
-    use std::fs::File;
-    use std::io::Write;
+    let img = image::imageops::resize(&img, 120, 200, image::imageops::FilterType::Nearest);
 
-    let mut f = File::create("asd_local.jpg")?;
-    f.write(img.as_bytes())?;
+    let mut buf = Vec::new();
+    img.write_to(&mut Cursor::new(&mut buf), ImageFormat::Jpeg)?;
 
-    Ok(img.as_bytes().to_owned().into())
+    Ok(buf.into())
 }
