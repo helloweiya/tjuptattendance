@@ -1,11 +1,10 @@
 //! 解析图片，获得答案
 
-use std::fmt::Display;
-
 use anyhow::{anyhow, Result};
 use bytes::Bytes;
 use reqwest::Client;
 use serde::Deserialize;
+use std::fmt::Display;
 
 /// 验证码
 pub struct Kaptcha {
@@ -38,14 +37,29 @@ impl Kaptcha {
         limit: f32,
     ) -> Result<Answer> {
         self.get_img(client).await?;
-        let an = None;
+        let mut an = None;
         log::debug!("设置的阈值: {}%", limit);
         for i in answers.iter_mut() {
             if i.get_img(client).await.is_err() {
                 log::debug!("无法获取海报: {}", i.name);
                 continue;
             } else {
-                log::debug!("比较...");
+                let Some(ref ori) = self.img_bytes else {
+                    continue;
+                };
+                let Some(ref pic) = self.img_bytes else {
+                    continue;
+                };
+                let Ok(co) = compare_pic(ori, pic) else {
+                    continue;
+                };
+                log::debug!("比较结果: {:.2}%", co);
+                if co >= limit {
+                    an = Some(i.clone());
+                    save_to_disk(ori, "ori.jpg")?;
+                    save_to_disk(pic, "pic.jpg")?;
+                    break;
+                }
             }
         }
 
@@ -62,6 +76,7 @@ impl From<String> for Kaptcha {
     }
 }
 
+#[derive(Clone)]
 pub struct Answer {
     pub name: String,
     pub value: String,
@@ -133,4 +148,28 @@ async fn get_douban_data(name: &str, client: &Client) -> Result<DouBanData> {
     } else {
         Err(anyhow!("无有效数据"))
     }
+}
+
+/// 对比图片，得到相似度结果，
+/// 越接近100越相似，0为完全不同
+/// 由于目前是完全相同的两个图片，所以直接计算hash就好
+fn compare_pic(ori: &Bytes, pic: &Bytes) -> Result<f32> {
+    // let mut state1 = AHasher::default();
+    // let mut state2 = AHasher::default();
+    // ori.hash(&mut state1);
+    // pic.hash(&mut state2);
+    log::debug!("{}, {}", ori.len(), pic.len());
+    if ori == pic {
+        Ok(100.0)
+    } else {
+        Ok(0.0)
+    }
+}
+
+fn save_to_disk(b: &Bytes, path: &str) -> Result<()> {
+    use std::fs::File;
+    use std::io::Write;
+    let mut f = File::create(path)?;
+    f.write_all(b)?;
+    Ok(())
 }
