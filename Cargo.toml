@@ -38,6 +38,10 @@ dssim = { version = "3.2", default-features = false }
 load_image = "3.0.1"
 imgref = "1.9.4"
 
+[dependencies.image]
+version = "0.24.5"
+default-features = false
+features = ["jpeg", "png"]
 
 [profile.release]
 opt-level = "s"

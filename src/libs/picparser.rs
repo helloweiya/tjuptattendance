@@ -7,7 +7,7 @@ use imgref::Img;
 use load_image::ImageData;
 use reqwest::Client;
 use serde::Deserialize;
-use std::fmt::Display;
+use std::{fmt::Display, io::Cursor};
 
 /// 验证码
 pub struct Kaptcha {
@@ -27,6 +27,7 @@ impl Kaptcha {
     async fn get_img(&mut self, client: &Client) -> Result<()> {
         if self.img_bytes.is_none() {
             let b = client.get(self.url.as_str()).send().await?.bytes().await?;
+            let b = reseize_pic(b)?;
             self.img_bytes = Some(b);
         }
         Ok(())
@@ -116,6 +117,9 @@ impl Answer {
             return Err(anyhow!("无法获取图片"));
         };
         let b = client.get(url).send().await?.bytes().await?;
+
+        let b = reseize_pic(b)?;
+
         self.img_bytes = Some(b);
         Ok(())
     }
@@ -197,4 +201,19 @@ fn load_img(attr: &Dssim, m_b: &Bytes) -> Result<DssimImage<f32>> {
         None => Err(anyhow!("error!!!")),
         Some(i) => Ok(i),
     }
+}
+
+fn reseize_pic(pic1: Bytes) -> Result<Bytes> {
+    let mut reader = image::io::Reader::new(Cursor::new(pic1));
+    reader.set_format(image::ImageFormat::Jpeg);
+    let img = reader.decode()?;
+    let img = img.resize(270, 400, image::imageops::FilterType::Nearest);
+
+    use std::fs::File;
+    use std::io::Write;
+
+    let mut f = File::create("asd_local.jpg")?;
+    f.write(img.as_bytes())?;
+
+    Ok(img.as_bytes().to_owned().into())
 }
