@@ -2,6 +2,8 @@
 
 use anyhow::{anyhow, Result};
 use bytes::Bytes;
+use dssim::{Dssim, ToRGBAPLU, RGBAPLU};
+use imgref::{Img, ImgVec};
 use reqwest::Client;
 use serde::Deserialize;
 use std::fmt::Display;
@@ -34,36 +36,51 @@ impl Kaptcha {
         &mut self,
         answers: &mut [Answer],
         client: &Client,
-        limit: f32,
+        limit: f64,
     ) -> Result<Answer> {
+        let attr = Dssim::new();
         self.get_img(client).await?;
         let mut an = None;
-        log::debug!("设置的阈值: {}%", limit);
+        let mut min_c = f64::MAX - 0.1;
+        log::debug!("设置的阈值: {}", limit);
+        let Some(ref ori) = self.img_bytes else {
+            return Err(anyhow!("无法获取题图"));
+        };
+        let Some(orig) = attr.create_image(&load_img(ori)?) else {
+            return Err(anyhow!("无法获取题图的ssimimg"));
+        };
         for i in answers.iter_mut() {
             if i.get_img(client).await.is_err() {
                 log::debug!("无法获取海报: {}", i.name);
                 continue;
             } else {
-                let Some(ref ori) = self.img_bytes else {
-                    continue;
-                };
                 let Some(ref pic) = i.img_bytes else {
                     continue;
                 };
-                let Ok(co) = compare_pic(ori, pic) else {
+                let Ok(other) = &load_img(pic) else {
+                    log::debug!("无法获取选项图的img");
                     continue;
                 };
-                log::debug!("比较结果: {:.2}%", co);
-                if co >= limit {
+                let Some(modif) = attr.create_image(other) else {
+                    continue;
+                };
+                let (co, _) = attr.compare(&orig, modif);
+
+                log::debug!("比较结果: {:.2}", co);
+                if co <= limit && co < min_c {
                     an = Some(i.clone());
-                    break;
+                    min_c = co.into();
+                    continue;
                 }
             }
         }
 
         match an {
             None => Err(anyhow!("所有比较均失败了")),
-            Some(a) => Ok(a),
+            Some(a) => {
+                log::info!("最高相似: {:.2}", min_c);
+                Ok(a)
+            }
         }
     }
 }
@@ -148,19 +165,7 @@ async fn get_douban_data(name: &str, client: &Client) -> Result<DouBanData> {
     }
 }
 
-/// 对比图片，得到相似度结果，
-/// 越接近100越相似，0为完全不同
-/// 由于目前是完全相同的两个图片，所以直接计算hash就好
-fn compare_pic(ori: &Bytes, pic: &Bytes) -> Result<f32> {
-    // let mut state1 = AHasher::default();
-    // let mut state2 = AHasher::default();
-    // ori.hash(&mut state1);
-    // pic.hash(&mut state2);
-    log::debug!("{}, {}", ori.len(), pic.len());
-    if ori.len() == pic.len() {
-        Ok(100.0)
-    } else {
-        Ok(0.0)
-    }
+fn load_img(m_b: &Bytes) -> Result<ImgVec<RGBAPLU>> {
+    let img = lodepng::decode32(m_b)?;
+    Ok(Img::new(img.buffer.to_rgbaplu(), img.width, img.height))
 }
-
