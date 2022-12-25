@@ -2,8 +2,9 @@
 
 use anyhow::{anyhow, Result};
 use bytes::Bytes;
-use dssim::{Dssim, ToRGBAPLU, RGBAPLU};
-use imgref::{Img, ImgVec};
+use dssim::{Dssim, DssimImage, ToRGBAPLU};
+use imgref::Img;
+use load_image::ImageData;
 use reqwest::Client;
 use serde::Deserialize;
 use std::fmt::Display;
@@ -38,7 +39,8 @@ impl Kaptcha {
         client: &Client,
         limit: f64,
     ) -> Result<Answer> {
-        let attr = Dssim::new();
+        let mut attr = Dssim::new();
+        attr.set_scales(&[100.0, 100.0]);
         self.get_img(client).await?;
         let mut an = None;
         let mut min_c = f64::MAX - 0.1;
@@ -46,7 +48,7 @@ impl Kaptcha {
         let Some(ref ori) = self.img_bytes else {
             return Err(anyhow!("无法获取题图"));
         };
-        let Some(orig) = attr.create_image(&load_img(ori)?) else {
+        let Ok(orig) = load_img(&attr, ori) else {
             return Err(anyhow!("无法获取题图的ssimimg"));
         };
         for i in answers.iter_mut() {
@@ -57,11 +59,8 @@ impl Kaptcha {
                 let Some(ref pic) = i.img_bytes else {
                     continue;
                 };
-                let Ok(other) = &load_img(pic) else {
+                let Ok(modif) = &load_img(&attr,pic) else {
                     log::debug!("无法获取选项图的img");
-                    continue;
-                };
-                let Some(modif) = attr.create_image(other) else {
                     continue;
                 };
                 let (co, _) = attr.compare(&orig, modif);
@@ -165,7 +164,37 @@ async fn get_douban_data(name: &str, client: &Client) -> Result<DouBanData> {
     }
 }
 
-fn load_img(m_b: &Bytes) -> Result<ImgVec<RGBAPLU>> {
-    let img = lodepng::decode32(m_b)?;
-    Ok(Img::new(img.buffer.to_rgbaplu(), img.width, img.height))
+fn load_img(attr: &Dssim, m_b: &Bytes) -> Result<DssimImage<f32>> {
+    let img = load_image::load_data(m_b)?;
+
+    let res = match img.bitmap {
+        ImageData::RGB8(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgblu(), img.width, img.height))
+        }
+        ImageData::RGB16(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgblu(), img.width, img.height))
+        }
+        ImageData::RGBA8(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgbaplu(), img.width, img.height))
+        }
+        ImageData::RGBA16(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgbaplu(), img.width, img.height))
+        }
+        ImageData::GRAY8(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgblu(), img.width, img.height))
+        }
+        ImageData::GRAY16(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgblu(), img.width, img.height))
+        }
+        ImageData::GRAYA8(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgbaplu(), img.width, img.height))
+        }
+        ImageData::GRAYA16(ref bitmap) => {
+            attr.create_image(&Img::new(bitmap.to_rgbaplu(), img.width, img.height))
+        }
+    };
+    match res {
+        None => Err(anyhow!("error!!!")),
+        Some(i) => Ok(i),
+    }
 }
