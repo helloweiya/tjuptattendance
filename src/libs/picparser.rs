@@ -47,7 +47,7 @@ impl Kaptcha {
                 let Some(ref ori) = self.img_bytes else {
                     continue;
                 };
-                let Some(ref pic) = self.img_bytes else {
+                let Some(ref pic) = i.img_bytes else {
                     continue;
                 };
                 let Ok(co) = compare_pic(ori, pic) else {
@@ -56,8 +56,6 @@ impl Kaptcha {
                 log::debug!("比较结果: {:.2}%", co);
                 if co >= limit {
                     an = Some(i.clone());
-                    save_to_disk(ori, "ori.jpg")?;
-                    save_to_disk(pic, "pic.jpg")?;
                     break;
                 }
             }
@@ -159,17 +157,10 @@ fn compare_pic(ori: &Bytes, pic: &Bytes) -> Result<f32> {
     // ori.hash(&mut state1);
     // pic.hash(&mut state2);
     log::debug!("{}, {}", ori.len(), pic.len());
-    if ori == pic {
+    if ori.len() == pic.len() {
         Ok(100.0)
     } else {
         Ok(0.0)
     }
 }
 
-fn save_to_disk(b: &Bytes, path: &str) -> Result<()> {
-    use std::fs::File;
-    use std::io::Write;
-    let mut f = File::create(path)?;
-    f.write_all(b)?;
-    Ok(())
-}
