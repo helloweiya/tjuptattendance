@@ -9,23 +9,8 @@ use std::{
 
 use ahash::AHashSet;
 use anyhow::{anyhow, Context, Result};
-use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use time::Time;
 use toml;
-
-// 签到时间点
-// 未考虑网络延迟提前量
-lazy_static! {
-    /// 午夜
-    static ref MIDNIGHT: Time = Time::from_hms(0, 0, 0).unwrap();
-    static ref SIX_OCLOCK: Time = Time::from_hms(6, 0, 0).unwrap();
-    // static ref EIGHT_OCLOCK: Time = Time::from_hms(8, 0, 0).unwrap();
-    // static ref TWELVE_OCLOCK: Time = Time::from_hms(12, 0, 0).unwrap();
-    // static ref EIGHTEEN_OCLOK: Time = Time::from_hms(18, 0, 0).unwrap();
-    // static ref TWENTY_OCLOCK: Time = Time::from_hms(20, 0, 0).unwrap();
-    // static ref TWENTY_TWO_OCLOCK: Time = Time::from_hms(22, 0, 0).unwrap();
-}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ConfigFile {
@@ -102,7 +87,7 @@ impl ConfigFile {
     pub fn rmusers(&mut self, users: Vec<&str>) {
         let users: AHashSet<_> = users
             .into_iter()
-            .map(|u| UserConfig::new(true, u.into(), "".into(), None, None, None, None))
+            .map(|u| UserConfig::new(true, u.into(), "".into(), None, None))
             .collect();
 
         for i in users.into_iter() {
@@ -141,8 +126,6 @@ pub struct UserConfig {
     pwd: String,
     email: Option<String>,
     retry: Option<u8>,
-    delay: Option<u32>,
-    pub points_in_time: Option<Vec<Time>>,
 }
 
 impl PartialEq for UserConfig {
@@ -179,9 +162,9 @@ impl UserConfig {
     /// 更新delay
     ///
     /// 配置文件操作时不能用
-    pub fn update_delay(&mut self, global_conf: &GlobalConfig) {
-        self.delay = Some(match self.delay {
-            None => global_conf.network_delay(),
+    pub fn update_retry(&mut self, global_conf: &GlobalConfig) {
+        self.retry = Some(match self.retry {
+            None => global_conf.retry(),
             Some(n) => n,
         })
     }
@@ -194,19 +177,6 @@ impl UserConfig {
         self.enable
     }
 
-    pub fn points_in_time(&self) -> Option<&[Time]> {
-        self.points_in_time.as_deref()
-    }
-
-    pub fn delay(&self) -> u64 {
-        match self.delay {
-            Some(n) => n as u64,
-            None => 0,
-        }
-    }
-}
-
-impl UserConfig {
     /// 新建一个
     ///
     /// 如果是从命令行读取的，那么肯定是开启的
@@ -216,8 +186,6 @@ impl UserConfig {
         pwd: String,
         email: Option<String>,
         retry: Option<u8>,
-        delay: Option<u32>,
-        points_in_time: Option<Vec<Time>>,
     ) -> Self {
         Self {
             enable,
@@ -225,8 +193,6 @@ impl UserConfig {
             pwd,
             email,
             retry,
-            delay,
-            points_in_time,
         }
     }
 }
@@ -245,8 +211,6 @@ impl Default for UserConfig {
             pwd: "pwd".into(),
             email: None,
             retry: None,
-            delay: None,
-            points_in_time: Some(vec![*MIDNIGHT, *SIX_OCLOCK]),
         }
     }
 }
@@ -304,18 +268,14 @@ impl Default for EmailConfig {
 /// 全局配置
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct GlobalConfig {
-    network_delay: u32,
+    retry: u8,
     emailconf: EmailConfig,
 }
 
 impl GlobalConfig {
-    /// 网络延迟
-    pub fn network_delay(&self) -> u32 {
-        if self.network_delay > 1000 {
-            1000
-        } else {
-            self.network_delay
-        }
+    /// 重试次数
+    pub fn retry(&self) -> u8 {
+        self.retry
     }
 
     /// 邮件配置
@@ -329,7 +289,7 @@ impl Display for GlobalConfig {
         write!(
             f,
             "GlobalConf[delay: {}ms email: {}]",
-            self.network_delay, self.emailconf.enable
+            self.retry, self.emailconf.enable
         )
     }
 }

@@ -1,5 +1,6 @@
 //! 主要逻辑
 
+use crate::picparser;
 use crate::{
     command::{tjurls, DIRS},
     config::{ConfigFile, UserConfig},
@@ -16,7 +17,6 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use time::{OffsetDateTime, PrimitiveDateTime, Time, UtcOffset};
 
 lazy_static! {
     static ref HEADER: HeaderMap = {
@@ -31,7 +31,6 @@ lazy_static! {
         );
         head
     };
-    static ref TIMEOFFSET: UtcOffset = UtcOffset::from_hms(8, 0, 0).unwrap();
 
     // //input[@type="radio"]
     // //input[@type="submit"]
@@ -193,7 +192,7 @@ impl TjuPtUser {
                 return None;
             };
 
-                Some((name, value))
+                Some((name.to_string(), value.to_string()))
             })
             .collect::<Vec<_>>();
 
@@ -207,15 +206,39 @@ impl TjuPtUser {
 
         let img_url = format!("https://tjupt.org{}", img);
 
-        // TODO: 检查签到状态
-
         log::debug!("获取的图片链接: {}", img_url);
 
-        for (x, y) in answers {
-            log::debug!("{}, {}", x.to_string().as_str(), y);
+        for (x, y) in answers.iter() {
+            log::debug!("选项: {}, {}", x, y);
         }
 
-        Ok(())
+        if answers.is_empty() {
+            // 如果是空的，说明签到完了，或者需要补签
+            return Err(anyhow!("已经签到，或需要补签"));
+        }
+
+        // 获取结果
+        let mut answers: Vec<_> = answers.into_iter().map(picparser::Answer::from).collect();
+        let mut kaptcha = picparser::Kaptcha::new(img_url);
+
+        // let result = kaptcha
+        //     .compare_with_answers(&mut answers, &self.client, 70.0)
+        //     .await?;
+
+        let result = tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current().block_on(async move {
+                kaptcha
+                    .compare_with_answers(&mut answers, &self.client, 0.1)
+                    .await
+            })
+        })?;
+
+        log::info!("结果是: {}", result.name);
+
+        tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current()
+                .block_on(async move { self.post_answer(&result.value).await })
+        })
     }
 
     /// 签到
@@ -253,51 +276,6 @@ impl TjuPtUser {
         Err(anyhow!("签到失败: {}", self.config.id()))
     }
 
-    /// 等待到时间点进行签到
-    pub async fn att_on_time(&mut self) -> Result<()> {
-        // 先进性排序
-        self.sort_points_in_time();
-
-        // 这里加载一次cookie就好
-        let _res = self.load_cookie();
-
-        let retry_times = self.config.retry();
-
-        // let mut need_wait = true;
-
-        // 等待到时间 (少等2秒)
-        tokio::time::sleep(std::time::Duration::
-            // from_micros(self.get_next_att_duration().abs().whole_microseconds() as u64 - (self.config.delay() * 1000) as u64)
-            from_secs_f64(
-            (self.get_next_att_duration().whole_seconds().abs()
-                - (self.config.delay() / 1000) as i64) as f64,
-        ))
-        .await;
-
-        for i in 0..retry_times {
-            // 此时登陆
-            // if let Err(e) = self.get_att_html().await {
-            //     log::debug!("登录失败: {}, Error: {}", self.config.id(), e);
-            //     continue;
-            // }
-
-            if let Err(e) = self.att_onece_now().await {
-                log::debug!(
-                    "{} 签到失败 {}/{} Error: {}",
-                    self.config.id(),
-                    i + 1,
-                    retry_times,
-                    e
-                );
-                continue;
-            } else {
-                log::info!("签到成功: {}", self.config.id());
-                return Ok(());
-            }
-        }
-        Err(anyhow!("签到失败: {}", self.config.id()))
-    }
-
     /// 清除cookie
     pub fn clear_cookie(&self) -> Result<()> {
         let Ok(mut lock) = self.cookie.lock() else {
@@ -309,6 +287,23 @@ impl TjuPtUser {
 
     pub fn client(&self) -> &Client {
         &self.client
+    }
+
+    async fn post_answer(&self, value: &str) -> Result<()> {
+        let data = &[("answer", value), ("submit", "提交")];
+        let r = self
+            .client
+            .post(tjurls::ATTENDANCE)
+            .form(data)
+            .send()
+            .await?
+            .text()
+            .await?;
+        if r.contains("签到成功") {
+            Ok(())
+        } else {
+            Err(anyhow!("签到失败"))
+        }
     }
 
     /// 保存 cookie 到 cookie_path
@@ -328,54 +323,6 @@ impl TjuPtUser {
             }
         }
         Ok(())
-    }
-
-    /// 对points_in_time进行排序
-    pub fn sort_points_in_time(&mut self) {
-        if let Some(ref mut points_in_time) = self.config.points_in_time {
-            points_in_time.sort();
-        }
-    }
-
-    /// 获取距离下次签到的时间间隔
-    ///
-    /// 调用前要进行排序的
-    pub fn get_next_att_duration(&self) -> time::Duration {
-        let no_dur = time::Duration::seconds_f32(0.0);
-        let now = get_date_time();
-        let mut next_time = None;
-
-        if let Some(timepoints) = self.config.points_in_time() {
-            for point in timepoints {
-                if point >= &now.time() {
-                    next_time = Some(point);
-                    break;
-                }
-            }
-
-            if let Some(next_time) = next_time {
-                // 如果今天有下次签到的时间点
-                log::info!("{} 预定时间点: {}", self.config.id(), next_time);
-                *next_time - now.time()
-            } else {
-                // 如果是之前的时间点则是第二天的第一个
-                let Some(next_date) = now.date().next_day() else {
-                    log::warn!("无法获取下一天的日期");
-                    return  no_dur;
-                };
-
-                let Some(first_point) = self.config.points_in_time().and_then(|t| t.get(0) ) else {
-                    return no_dur;
-                };
-
-                let next_date_time =
-                    PrimitiveDateTime::new(next_date, *first_point).assume_offset(*TIMEOFFSET);
-                log::warn!("{} 选中明天的时间点: {}", self.config.id(), next_date_time);
-                next_date_time - now
-            }
-        } else {
-            no_dur
-        }
     }
 }
 
@@ -434,41 +381,6 @@ pub async fn attendance() -> Result<()> {
     } else if mat.get_flag("uninstall") {
         // 如果是卸载
         uninstall()?;
-    } else if mat.contains_id("time") {
-        // 如果是定时启动
-        let users: Vec<&String> = mat.get_many("user").unwrap().collect();
-        let users_num = users.len() / 2;
-        let retry: u8 = *mat.get_one("retry").unwrap();
-        let delay: u32 = *mat.get_one("delay").unwrap();
-        let time_points: Vec<&u8> = mat.get_many("time").unwrap().collect();
-        let Ok(points_in_time) = Time::from_hms(
-            *time_points[0],
-            *time_points[1],
-            *time_points[2]) else {
-            return Err(anyhow!("非法的时间点参数"));
-        };
-
-        let mut users_vec = vec![];
-        for i in 0..users_num {
-            let Some(user_id) = users.get(2*i)
-                else {continue;};
-            let Some(user_pwd) = users.get(2*i+1)
-                else {continue;};
-            let user = UserConfig::new(
-                true,
-                user_id.to_string(),
-                user_pwd.to_string(),
-                None,
-                Some(retry),
-                Some(delay),
-                Some(vec![points_in_time]),
-            );
-
-            users_vec.push(TjuPtUser::from_config::<&Path>(user, None));
-        }
-
-        // 开始异步得签到
-        att_all_on_time(users_vec).await;
     } else if mat.contains_id("user") {
         // 如果制定了user，那么就使用这个user
         let users: Vec<&String> = mat.get_many("user").unwrap().collect();
@@ -486,8 +398,6 @@ pub async fn attendance() -> Result<()> {
                 user_pwd.to_string(),
                 None,
                 Some(retry),
-                None,
-                None,
             );
 
             users_vec.push(TjuPtUser::from_config::<&Path>(user, None));
@@ -495,9 +405,7 @@ pub async fn attendance() -> Result<()> {
 
         // 开始马上签到
         att_all_now(users_vec).await;
-    }
-    // TODO 配置文件操作
-    else if let Some(config_mat) = mat.subcommand_matches("config") {
+    } else if let Some(config_mat) = mat.subcommand_matches("config") {
         // 如果是配置文件
         let config_path: &String = config_mat.get_one("file").unwrap();
         let config_path = Path::new(config_path);
@@ -521,9 +429,7 @@ pub async fn attendance() -> Result<()> {
             let users = get_users_vec(users);
             let users = users
                 .into_iter()
-                .map(|(id, pwd)| {
-                    UserConfig::new(true, id.into(), pwd.into(), None, None, None, None)
-                })
+                .map(|(id, pwd)| UserConfig::new(true, id.into(), pwd.into(), None, None))
                 .collect::<Vec<UserConfig>>();
             config_file.addusers(users);
             config_file.write_to_file(config_path)?;
@@ -552,7 +458,7 @@ pub async fn attendance() -> Result<()> {
             .get_users()
             .into_iter()
             .filter_map(|mut u| {
-                u.update_delay(g_conf);
+                u.update_retry(g_conf);
                 if u.enable() {
                     Some(TjuPtUser::from_config(u, Some(DIRS.state_dir())))
                 } else {
@@ -562,7 +468,7 @@ pub async fn attendance() -> Result<()> {
             .collect::<Vec<TjuPtUser>>();
 
         // 签到
-        att_all_on_time(users).await;
+        att_all_now(users).await;
     }
     Ok(())
 }
@@ -587,26 +493,6 @@ async fn att_all_now(users: Vec<TjuPtUser>) {
     }
 }
 
-/// 批量签到-定时
-async fn att_all_on_time(users: Vec<TjuPtUser>) {
-    // 签到
-    let mut hands = vec![];
-    for mut i in users.into_iter() {
-        hands.push(tokio::spawn(async move { i.att_on_time().await }));
-    }
-
-    for i in hands.into_iter() {
-        let Ok(i) = i.await else {
-             continue;
-         };
-
-        if let Err(e) = i {
-            log::error!("{}", e);
-            continue;
-        }
-    }
-}
-
 /// 从user——vec转users
 fn get_users_vec(users: Vec<&str>) -> Vec<(&str, &str)> {
     let users_num = users.len() / 2;
@@ -623,9 +509,4 @@ fn get_users_vec(users: Vec<&str>) -> Vec<(&str, &str)> {
         users_res.push((*id, *pwd));
     }
     users_res
-}
-
-/// 获取日期时间
-pub fn get_date_time() -> OffsetDateTime {
-    OffsetDateTime::now_utc().to_offset(*TIMEOFFSET)
 }

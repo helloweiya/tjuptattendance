@@ -12,7 +12,6 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 ## 目标
 - [x] 命令行配置
-- [x] 定时签到
 - [x] cookies 保存
 - [x] 配置文件解析(高级功能)
 - [ ] 实现签到
@@ -36,8 +35,6 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 - `--uninstall`: 卸载，删除由`--init`所创建的文件和文件夹
 - `--user`: 从命令行获取用户信息运行，格式: `--user id1 pwd1 --user id2 pwd2 ...` 此种方式不需要 `--init` 即可正常使用，不会留下任何文件
 - `--retry`: 签到重试次数，必须与 `--user` 一起使用
-- `--time`: 签到时间点，必须与 `--user` 一起使用，如果设定的时间点已经过去了，则会等待到明天的时间点，格式: `--time HOUR MIN SEC`
-- `--delay`: 网络延迟(ms)，可以按照经验适当尝试增加，注意：请不要太大！默认是0ms，实际签到时间应该为 `--time` 设定的时间之前毫秒数的时间，此参数必须与 `--time` 一起使用
 - `--file`: 使用配置文件的参数来进行签到，如果不指定则使用默认值，如果要使用自定义位置: `tjuptatt config -f CONFIG_PATH`，此参数只能单独使用，如果直接运行不加任何参数则效果如同: `tjuptatt -f DEFAULT_CONFIG_PATH`
 
 ### 字命令 - config - 配置文件快速操作
@@ -65,19 +62,10 @@ email = "asd@qq.com"
 id = "user_id"
 # 用户的密码
 pwd = "user_pwd"
-# 网络延迟(ms) 范围 0~1000ms
-delay = 50
-# 签到时间点
-# 如果不指定则是马上签到，如果指定则会等到对应时间
-# 可以设置多个时间点，但是只有接下来最近的那一个会执行
-# 格式：时分秒纳秒 二十四小时制
-points_in_time = [ [0,0,0,0], [6,0,0,0] ]
 
 # 全局设置
 [global]
-# 网络延迟，如果用户设置中未指定，则会使用此值
-# 范围 0~1000ms
-network_delay = 50
+retry = 1
 
 # 邮件设置
 # 用来发送邮件提醒
