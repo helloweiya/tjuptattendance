@@ -1,5 +1,6 @@
 //! 主要逻辑
 
+use crate::picparser;
 use crate::{
     command::{tjurls, DIRS},
     config::{ConfigFile, UserConfig},
@@ -191,7 +192,7 @@ impl TjuPtUser {
                 return None;
             };
 
-                Some((name, value))
+                Some((name.to_string(), value.to_string()))
             })
             .collect::<Vec<_>>();
 
@@ -205,12 +206,10 @@ impl TjuPtUser {
 
         let img_url = format!("https://tjupt.org{}", img);
 
-        // TODO: 检查签到状态
-
         log::debug!("获取的图片链接: {}", img_url);
 
         for (x, y) in answers.iter() {
-            log::debug!("选项: {}, {}", x.to_string().as_str(), y);
+            log::debug!("选项: {}, {}", x, y);
         }
 
         if answers.is_empty() {
@@ -218,6 +217,23 @@ impl TjuPtUser {
             return Err(anyhow!("已经签到，或需要补签"));
         }
 
+        // 获取结果
+        let mut answers: Vec<_> = answers.into_iter().map(picparser::Answer::from).collect();
+        let mut kaptcha = picparser::Kaptcha::new(img_url);
+
+        // let result = kaptcha
+        //     .compare_with_answers(&mut answers, &self.client, 70.0)
+        //     .await?;
+
+        let result = tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current().block_on(async move {
+                kaptcha
+                    .compare_with_answers(&mut answers, &self.client, 70.0)
+                    .await
+            })
+        })?;
+
+        log::info!("结果是: {}", result.name);
         Ok(())
     }
 
