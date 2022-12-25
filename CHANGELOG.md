@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- 签到
 - 获取结果(图片相似度)
 - 海报下载
 - 增加图标

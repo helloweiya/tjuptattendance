@@ -234,7 +234,11 @@ impl TjuPtUser {
         })?;
 
         log::info!("结果是: {}", result.name);
-        Ok(())
+
+        tokio::task::block_in_place(move || {
+            tokio::runtime::Handle::current()
+                .block_on(async move { self.post_answer(&result.value).await })
+        })
     }
 
     /// 签到
@@ -283,6 +287,23 @@ impl TjuPtUser {
 
     pub fn client(&self) -> &Client {
         &self.client
+    }
+
+    async fn post_answer(&self, value: &str) -> Result<()> {
+        let data = &[("answer", value), ("submit", "提交")];
+        let r = self
+            .client
+            .post(tjurls::ATTENDANCE)
+            .form(data)
+            .send()
+            .await?
+            .text()
+            .await?;
+        if r.contains("签到成功") {
+            Ok(())
+        } else {
+            Err(anyhow!("签到失败"))
+        }
     }
 
     /// 保存 cookie 到 cookie_path
