@@ -310,7 +310,7 @@ impl Display for GlobalConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "GlobalConf[delay: {}ms email: {}]",
+            "GlobalConf[retry: {} email: {}]",
             self.retry,
             self.emailconf.user.as_str()
         )

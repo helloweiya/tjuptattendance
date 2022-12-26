@@ -131,12 +131,14 @@ AzureQAQ's Blog: https://www.3moredays.com/
 如果不指定配置文件，将使用默认位置
 更多配置文件信息: https://github.com/azureqaq/tjuptattendance",
                 )
-                .help_template("\
+                .help_template(
+                    "\
 {before-help}{name} {version}
 {author-with-newline}{about-with-newline}
 {usage-heading} {usage}tjuptatt config [<option> <arg> ...]
 
-{all-args}{after-help}")
+{all-args}{after-help}",
+                )
                 .arg_required_else_help(true)
                 .args_conflicts_with_subcommands(true)
                 .arg(
