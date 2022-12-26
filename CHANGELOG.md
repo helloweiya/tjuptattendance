@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 
+## [1.1.1] - 2022-12-26
+### Changed
+- 完善文档信息
+- 完善 `show` 的输出信息
+
+
 ## [1.1.0] - 2022-12-26
 ### Added
 - `email` 选项

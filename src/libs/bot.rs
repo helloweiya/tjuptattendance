@@ -466,6 +466,12 @@ pub async fn attendance() -> Result<()> {
             // 打印配置信息
             println!("配置文件位置: {}", config_path.display());
             println!("配置文件信息: {}", config_file);
+            println!("用户配置信息：");
+            let users_config = config_file.get_users();
+            for u in users_config.iter() {
+                println!("{}", u);
+            }
+            println!("邮件配置信息：{}", config_file.get_email_config());
         }
     } else {
         // 其他情况，使用配置文件直接运行
