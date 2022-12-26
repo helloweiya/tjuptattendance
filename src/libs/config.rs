@@ -26,6 +26,10 @@ impl ConfigFile {
         Self::default()
     }
 
+    pub fn get_email_config(self) -> EmailConfig {
+        self.global.emailconf
+    }
+
     /// 从文件读取
     pub fn new_from<P>(path: P) -> Result<Self>
     where
@@ -33,7 +37,8 @@ impl ConfigFile {
     {
         let path = path.as_ref();
         let content = read_to_string(path).context(anyhow!(
-            "无法读取配置文件: {}, 如果使用默认位置则可能需要先初始化 `--init`",
+            "无法读取配置文件: {}, 如果使用默认位置则可能需要先初始化 `--init` \
+            请使用`--help`查看更多信息",
             path.display()
         ))?;
         let result = toml::from_str(&content)?;
@@ -195,6 +200,10 @@ impl UserConfig {
             retry,
         }
     }
+
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_deref()
+    }
 }
 
 impl Display for UserConfig {
@@ -218,7 +227,6 @@ impl Default for UserConfig {
 /// 全局配置里的邮件配置
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EmailConfig {
-    enable: bool,
     user: String,
     pwd: String,
     sender: Option<String>,
@@ -227,14 +235,16 @@ pub struct EmailConfig {
 }
 
 impl EmailConfig {
-    /// 是否启用
-    pub fn enable(&self) -> bool {
-        self.enable
-    }
-
     /// port 默认是 465
     pub fn port(&self) -> u32 {
         self.port.unwrap_or(465)
+    }
+
+    pub fn sender(&self) -> &str {
+        match &self.sender {
+            None => self.user.as_str(),
+            Some(s) => s,
+        }
     }
 
     /// host 默认: smtp.qq.com
@@ -244,18 +254,25 @@ impl EmailConfig {
             None => "smtp.qq.com",
         }
     }
+
+    pub fn user(&self) -> &str {
+        &self.user
+    }
+
+    pub fn pwd(&self) -> &str {
+        &self.pwd
+    }
 }
 
 impl Display for EmailConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EmailConf[{}]", self.enable)
+        write!(f, "EmailConf[{}]", self.user.as_str())
     }
 }
 
 impl Default for EmailConfig {
     fn default() -> Self {
         Self {
-            enable: false,
             user: "user".into(),
             pwd: "pwd".into(),
             sender: None,
@@ -266,7 +283,7 @@ impl Default for EmailConfig {
 }
 
 /// 全局配置
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GlobalConfig {
     retry: u8,
     emailconf: EmailConfig,
@@ -289,7 +306,17 @@ impl Display for GlobalConfig {
         write!(
             f,
             "GlobalConf[delay: {}ms email: {}]",
-            self.retry, self.emailconf.enable
+            self.retry,
+            self.emailconf.user.as_str()
         )
+    }
+}
+
+impl Default for GlobalConfig {
+    fn default() -> Self {
+        Self {
+            retry: 1,
+            emailconf: EmailConfig::default(),
+        }
     }
 }

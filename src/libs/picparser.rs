@@ -39,14 +39,14 @@ impl Kaptcha {
         &mut self,
         answers: &mut [Answer],
         client: &Client,
-        limit: f64,
+        limit_min: f64,
     ) -> Result<Answer> {
         let mut attr = Dssim::new();
         attr.set_scales(&[100.0, 100.0]);
         self.get_img(client).await?;
         let mut an = None;
-        let mut min_c = f64::MAX - 0.1;
-        log::debug!("设置的阈值: {}", limit);
+        let mut min_score = f64::MAX - 0.1;
+        // log::debug!("设置的阈值: {}", limit);
         let Some(ref ori) = self.img_bytes else {
             return Err(anyhow!("无法获取题图"));
         };
@@ -54,23 +54,24 @@ impl Kaptcha {
             return Err(anyhow!("无法获取题图的ssimimg"));
         };
         for i in answers.iter_mut() {
-            if i.get_img(client).await.is_err() {
-                log::debug!("无法获取海报: {}", i.name);
+            if let Err(e) = i.get_img(client).await {
+                log::warn!("无法获取海报: {}, Err: {}", i.name, e);
                 continue;
             } else {
                 let Some(ref pic) = i.img_bytes else {
+                    log::debug!("无法获取选项图的img");
                     continue;
                 };
                 let Ok(modif) = &load_img(&attr,pic) else {
                     log::debug!("无法获取选项图的img");
                     continue;
                 };
-                let (co, _) = attr.compare(&orig, modif);
+                let (score, _) = attr.compare(&orig, modif);
 
-                log::debug!("比较结果: {:.2}", co);
-                if co <= limit && co < min_c {
+                // log::debug!("比较结果: {:.2}", co);
+                if score <= limit_min && score < min_score {
                     an = Some(i.clone());
-                    min_c = co.into();
+                    min_score = score.into();
                     continue;
                 }
             }
@@ -79,7 +80,7 @@ impl Kaptcha {
         match an {
             None => Err(anyhow!("所有比较均失败了")),
             Some(a) => {
-                log::info!("最高相似: {:.2}", min_c);
+                log::info!("最高相似: {:.2}", min_score);
                 Ok(a)
             }
         }
@@ -112,7 +113,7 @@ impl Answer {
 
     pub async fn get_img(&mut self, client: &Client) -> Result<()> {
         let data = get_douban_data(&self.name, client).await?;
-        log::debug!("获取到的豆瓣信息: {}", data);
+        // log::debug!("获取到的豆瓣信息: {}", data);
         self.img_url = Some(data.img);
         let Some(ref url) = self.img_url else {
             return Err(anyhow!("无法获取图片"));
@@ -134,6 +135,7 @@ impl From<(String, String)> for Answer {
 
 #[derive(Deserialize)]
 struct DouBanData {
+    /// 图片链接
     img: String,
     title: String,
     sub_title: Option<String>,
@@ -141,13 +143,10 @@ struct DouBanData {
 
 impl Display for DouBanData {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "DoubanData[{}-{}-{}]",
-            self.title,
-            self.sub_title.is_some(),
-            self.img
-        )
+        match &self.sub_title {
+            None => write!(f, "DoubanData[{}]", self.title),
+            Some(subtitle) => write!(f, "DoubanData[{}-{}]", self.title, subtitle),
+        }
     }
 }
 
@@ -160,12 +159,12 @@ async fn get_douban_data(name: &str, client: &Client) -> Result<DouBanData> {
         .json()
         .await?;
 
-    log::debug!("豆瓣数据: {}个", res.len());
+    // log::debug!("豆瓣数据: {}个", res.len());
 
     if let Some(d) = res.into_iter().next() {
         Ok(d)
     } else {
-        Err(anyhow!("无有效数据"))
+        Err(anyhow!("无法获取豆瓣数据"))
     }
 }
 
@@ -204,6 +203,7 @@ fn load_img(attr: &Dssim, m_b: &Bytes) -> Result<DssimImage<f32>> {
     }
 }
 
+/// 设置图片尺寸
 fn reseize_pic(pic1: Bytes) -> Result<Bytes> {
     let mut reader = image::io::Reader::new(Cursor::new(pic1));
     reader.set_format(image::ImageFormat::Jpeg);

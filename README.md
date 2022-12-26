@@ -27,6 +27,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 - [x] 实现签到
 - [ ] 更详细的配置文件及自定义功能
   - [ ] 定时功能(TOP10签到)
+  - [x] 邮件功能
 
 
 ## 安装方法 - Release
@@ -83,10 +84,6 @@ retry = 1
 # 邮件设置
 # 用来发送邮件提醒
 [global.emailconf]
-# 是否开启邮件提醒
-# 注意：就算开启了但是用户未填写邮箱，还是不会发送的
-# 如果想要使用此功能，请提前进行测试
-enable = false
 # 登陆名
 user = "登录名"
 # 发件人，可以不指定

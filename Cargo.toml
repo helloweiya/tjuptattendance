@@ -38,6 +38,11 @@ dssim = { version = "3.2", default-features = false }
 load_image = "3.0.1"
 imgref = "1.9.4"
 
+[dependencies.lettre]
+version = "0.10"
+features = ["tokio1", "tokio1-rustls-tls", "smtp-transport", "pool", "hostname", "builder"]
+default-features = false
+
 [dependencies.image]
 version = "0.24.5"
 default-features = false

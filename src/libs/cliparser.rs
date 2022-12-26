@@ -88,7 +88,8 @@ AzureQAQ's Blog: https://www.3moredays.com/
                 .num_args(1)
                 .value_parser(value_parser!(u8))
                 .default_value("1")
-                .requires("user"),
+                .requires("user")
+                .conflicts_with("file"),
         )
         .arg(
             Arg::new("file")
@@ -103,7 +104,22 @@ AzureQAQ's Blog: https://www.3moredays.com/
                 .action(ArgAction::Set)
                 .default_value(config_path)
                 .num_args(1)
-                .exclusive(true),
+                .conflicts_with("user"),
+        )
+        .arg(
+            Arg::new("email")
+                .long("email")
+                .short('e')
+                .help("是否开启邮件提醒")
+                .long_help(
+                    "\
+是否开启邮件提醒，默认不使用邮件功能，
+此选项启用后，会使用配置文件中的邮件配置，
+必须与 `-f` 一起使用",
+                )
+                .action(ArgAction::SetTrue)
+                .num_args(0)
+                .conflicts_with("user"),
         )
         .subcommand(
             Command::new("config")
