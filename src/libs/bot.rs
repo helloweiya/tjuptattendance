@@ -1,10 +1,11 @@
 //! 主要逻辑
 
-use crate::picparser;
+use crate::config::EmailConfig;
 use crate::{
     command::{tjurls, DIRS},
     config::{ConfigFile, UserConfig},
 };
+use crate::{email_bot, picparser};
 use anyhow::{anyhow, Result};
 use lazy_static::lazy_static;
 use reqwest::{header::HeaderMap, redirect, Client, ClientBuilder};
@@ -248,7 +249,7 @@ impl TjuPtUser {
     /// 尝试加载cookie一次
     ///
     /// 并立即签到
-    pub async fn att_now(&self) -> Result<()> {
+    pub async fn att_now(&self, enable_email: bool, email_config: Arc<EmailConfig>) -> Result<()> {
         // 这里加载一次cookie就好
         let _res = self.load_cookie();
 
@@ -273,6 +274,19 @@ impl TjuPtUser {
                 return Ok(());
             }
         }
+
+        if enable_email {
+            if let Some(rec) = self.config.email() {
+                if let Err(e) = email_bot::send_email(
+                    &email_config,
+                    rec,
+                    format!("{} 签到失败", self.config.id()).as_str(),
+                ) {
+                    log::error!("邮件发送失败!, Err: {}", e);
+                }
+            }
+        }
+
         Err(anyhow!("签到失败: {}", self.config.id()))
     }
 
@@ -375,6 +389,8 @@ pub async fn attendance() -> Result<()> {
 
     let config_path: &String = mat.get_one("file").unwrap();
 
+    let enable_email = mat.get_flag("email");
+
     if mat.get_flag("init") {
         // 如果是初始化
         crate::bot::initialization()?;
@@ -404,7 +420,8 @@ pub async fn attendance() -> Result<()> {
         }
 
         // 开始马上签到
-        att_all_now(users_vec).await;
+        let email_config = Arc::new(EmailConfig::default());
+        att_all_now(users_vec, false, email_config).await;
     } else if let Some(config_mat) = mat.subcommand_matches("config") {
         // 如果是配置文件
         let config_path: &String = config_mat.get_one("file").unwrap();
@@ -468,17 +485,21 @@ pub async fn attendance() -> Result<()> {
             .collect::<Vec<TjuPtUser>>();
 
         // 签到
-        att_all_now(users).await;
+        let email_config = Arc::new(config_file.get_email_config());
+        att_all_now(users, enable_email, email_config).await;
     }
     Ok(())
 }
 
 /// 批量签到
-async fn att_all_now(users: Vec<TjuPtUser>) {
+async fn att_all_now(users: Vec<TjuPtUser>, enable_email: bool, email_config: Arc<EmailConfig>) {
     // 签到
     let mut hands = vec![];
     for i in users.into_iter() {
-        hands.push(tokio::spawn(async move { i.att_now().await }));
+        let email_config = email_config.clone();
+        hands.push(tokio::spawn(async move {
+            i.att_now(enable_email, email_config).await
+        }));
     }
 
     for i in hands.into_iter() {

@@ -26,6 +26,10 @@ impl ConfigFile {
         Self::default()
     }
 
+    pub fn get_email_config(self) -> EmailConfig {
+        self.global.emailconf
+    }
+
     /// 从文件读取
     pub fn new_from<P>(path: P) -> Result<Self>
     where
@@ -196,6 +200,10 @@ impl UserConfig {
             retry,
         }
     }
+
+    pub fn email(&self) -> Option<&str> {
+        self.email.as_deref()
+    }
 }
 
 impl Display for UserConfig {
@@ -238,6 +246,10 @@ impl EmailConfig {
             Some(ref s) => s.as_str(),
             None => "smtp.qq.com",
         }
+    }
+
+    pub fn user(&self) -> &str {
+        &self.user
     }
 }
 
