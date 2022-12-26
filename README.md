@@ -27,7 +27,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 - [x] 实现签到
 - [ ] 更详细的配置文件及自定义功能
   - [ ] 定时功能(TOP10签到)
-  - [ ] 邮件功能
+  - [x] 邮件功能
 
 
 ## 安装方法 - Release

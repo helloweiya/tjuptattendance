@@ -240,6 +240,13 @@ impl EmailConfig {
         self.port.unwrap_or(465)
     }
 
+    pub fn sender(&self) -> &str {
+        match &self.sender {
+            None => self.user.as_str(),
+            Some(s) => s,
+        }
+    }
+
     /// host 默认: smtp.qq.com
     pub fn host(&self) -> &str {
         match self.host {
@@ -250,6 +257,10 @@ impl EmailConfig {
 
     pub fn user(&self) -> &str {
         &self.user
+    }
+
+    pub fn pwd(&self) -> &str {
+        &self.pwd
     }
 }
 

@@ -209,9 +209,9 @@ impl TjuPtUser {
 
         // log::debug!("获取的图片链接: {}", img_url);
         // 这里检查一下图片应该是jpg结尾的
-        if !img_url.ends_with(".jpg") {
-            return Err(anyhow!("无法获取jpg格式图片"));
-        }
+        // if !img_url.ends_with(".jpg") {
+        //     return Err(anyhow!("无法获取jpg格式图片"));
+        // }
 
         // for (x, y) in answers.iter() {
         //     log::debug!("选项: {}, {}", x, y);
