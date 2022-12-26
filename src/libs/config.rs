@@ -219,7 +219,6 @@ impl Default for UserConfig {
 /// 全局配置里的邮件配置
 #[derive(Serialize, Deserialize, Debug)]
 pub struct EmailConfig {
-    enable: bool,
     user: String,
     pwd: String,
     sender: Option<String>,
@@ -228,11 +227,6 @@ pub struct EmailConfig {
 }
 
 impl EmailConfig {
-    /// 是否启用
-    pub fn enable(&self) -> bool {
-        self.enable
-    }
-
     /// port 默认是 465
     pub fn port(&self) -> u32 {
         self.port.unwrap_or(465)
@@ -249,14 +243,13 @@ impl EmailConfig {
 
 impl Display for EmailConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "EmailConf[{}]", self.enable)
+        write!(f, "EmailConf[{}]", self.user.as_str())
     }
 }
 
 impl Default for EmailConfig {
     fn default() -> Self {
         Self {
-            enable: false,
             user: "user".into(),
             pwd: "pwd".into(),
             sender: None,
@@ -267,7 +260,7 @@ impl Default for EmailConfig {
 }
 
 /// 全局配置
-#[derive(Serialize, Deserialize, Debug, Default)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct GlobalConfig {
     retry: u8,
     emailconf: EmailConfig,
@@ -290,7 +283,17 @@ impl Display for GlobalConfig {
         write!(
             f,
             "GlobalConf[delay: {}ms email: {}]",
-            self.retry, self.emailconf.enable
+            self.retry,
+            self.emailconf.user.as_str()
         )
+    }
+}
+
+impl Default for GlobalConfig {
+    fn default() -> Self {
+        Self {
+            retry: 1,
+            emailconf: EmailConfig::default(),
+        }
     }
 }
