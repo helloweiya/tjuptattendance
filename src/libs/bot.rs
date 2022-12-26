@@ -206,24 +206,24 @@ impl TjuPtUser {
 
         let img_url = format!("https://tjupt.org{}", img);
 
-        log::debug!("获取的图片链接: {}", img_url);
-
-        for (x, y) in answers.iter() {
-            log::debug!("选项: {}, {}", x, y);
+        // log::debug!("获取的图片链接: {}", img_url);
+        // 这里检查一下图片应该是jpg结尾的
+        if !img_url.ends_with(".jpg") {
+            return Err(anyhow!("无法获取jpg格式图片"));
         }
+
+        // for (x, y) in answers.iter() {
+        //     log::debug!("选项: {}, {}", x, y);
+        // }
 
         if answers.is_empty() {
             // 如果是空的，说明签到完了，或者需要补签
-            return Err(anyhow!("已经签到，或需要补签"));
+            return Err(anyhow!("无法找到选项，可能已经签到，或需要补签"));
         }
 
         // 获取结果
         let mut answers: Vec<_> = answers.into_iter().map(picparser::Answer::from).collect();
         let mut kaptcha = picparser::Kaptcha::new(img_url);
-
-        // let result = kaptcha
-        //     .compare_with_answers(&mut answers, &self.client, 70.0)
-        //     .await?;
 
         let result = tokio::task::block_in_place(move || {
             tokio::runtime::Handle::current().block_on(async move {

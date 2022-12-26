@@ -33,7 +33,8 @@ impl ConfigFile {
     {
         let path = path.as_ref();
         let content = read_to_string(path).context(anyhow!(
-            "无法读取配置文件: {}, 如果使用默认位置则可能需要先初始化 `--init`",
+            "无法读取配置文件: {}, 如果使用默认位置则可能需要先初始化 `--init` \
+            请使用`--help`查看更多信息",
             path.display()
         ))?;
         let result = toml::from_str(&content)?;
