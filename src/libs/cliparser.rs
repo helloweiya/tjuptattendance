@@ -25,6 +25,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
 本工具仅作为学习交流使用，切勿用作违规用途!!!
 详细规则请访问: https://tjupt.org/rules.php
 更多信息请访问: https://github.com/azureqaq/tjuptattendance
+
 使用本工具所造成的一切后果自负",
         )
         .help_template(
@@ -130,6 +131,12 @@ AzureQAQ's Blog: https://www.3moredays.com/
 如果不指定配置文件，将使用默认位置
 更多配置文件信息: https://github.com/azureqaq/tjuptattendance",
                 )
+                .help_template("\
+{before-help}{name} {version}
+{author-with-newline}{about-with-newline}
+{usage-heading} {usage}tjuptatt config [<option> <arg> ...]
+
+{all-args}{after-help}")
                 .arg_required_else_help(true)
                 .args_conflicts_with_subcommands(true)
                 .arg(
@@ -164,7 +171,8 @@ AzureQAQ's Blog: https://www.3moredays.com/
                             "\
 增加一个默认启用的用户
 格式: <userid> <userpwd>
-如果要配置邮箱等，可以去对应配置文件修改",
+如果要配置邮箱等，可以去对应配置文件修改
+注意：这可能覆盖已经存在的用户配置",
                         )
                         .action(ArgAction::Append)
                         .num_args(2),
@@ -177,8 +185,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
                             "\
 删除对应配置文件中的用户
 格式: <userid>
-可以通过 -r <id> -r <id> ... 来同时指定多个
-并且打印删除结果",
+可以通过 -r <id> -r <id> ... 来同时指定多个",
                         )
                         .action(ArgAction::Append)
                         .num_args(1)

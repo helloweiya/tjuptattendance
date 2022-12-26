@@ -84,7 +84,7 @@ impl ConfigFile {
     /// 增加用户
     pub fn addusers(&mut self, users: Vec<UserConfig>) {
         for i in users.into_iter() {
-            let _ = self.users.insert(i);
+            let _r = self.users.insert(i);
         }
     }
 
@@ -96,7 +96,12 @@ impl ConfigFile {
             .collect();
 
         for i in users.into_iter() {
-            self.users.remove(&i);
+            if self.users.remove(&i) {
+                // 如果之前存在
+                log::debug!("成功删除: {}", i.id());
+            } else {
+                log::debug!("无法删除不存在的: {}", i.id());
+            }
         }
     }
 }

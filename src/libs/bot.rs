@@ -255,11 +255,11 @@ impl TjuPtUser {
 
         let retry_times = self.config.retry();
         for i in 0..retry_times {
-            // 此时登陆
-            // if let Err(e) = self.get_att_html().await {
-            //     log::debug!("登录失败: {}, Error: {}", self.config.id(), e);
-            //     continue;
+            // // 为了豆瓣正常访问需要等待
+            // if i > 0 && i < retry_times-1 {
+            //     tokio::time::sleep(Duration::from_secs(10)).await;
             // }
+
             if let Err(e) = self.att_onece_now().await {
                 log::debug!(
                     "{} 签到失败 {}/{} Error: {}",
@@ -469,7 +469,7 @@ pub async fn attendance() -> Result<()> {
             println!("用户配置信息：");
             let users_config = config_file.get_users();
             for u in users_config.iter() {
-                println!("{}", u);
+                println!("    {}", u);
             }
             println!("邮件配置信息：{}", config_file.get_email_config());
         }
