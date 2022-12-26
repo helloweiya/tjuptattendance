@@ -50,6 +50,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 - `--user`: 从命令行获取用户信息运行，格式: `--user id1 pwd1 --user id2 pwd2 ...` 此种方式不需要 `--init` 即可正常使用，不会留下任何文件
 - `--retry`: 签到重试次数，必须与 `--user` 一起使用 *暂时不推荐使用，因为豆瓣api得有一段时间冷却*
 - `--file`: 使用配置文件的参数来进行签到，如果不指定则使用默认值，如果要使用自定义位置: `tjuptatt config -f CONFIG_PATH`，此参数只能单独使用，如果直接运行不加任何参数则效果如同: `tjuptatt -f DEFAULT_CONFIG_PATH`
+- `--email`: 是否启用邮件通知，必须与配置文件一起使用 `--file`，同时要求开启的 *user* 填写了 `email` 字段
 
 ### 字命令 - config - 配置文件快速操作
 - `--file`: 指定要操作的配置文件，如果不指定则使用默认值
