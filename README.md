@@ -10,7 +10,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 
 ## 简介
-- 使用[rust-lang](https://www.rust-lang.org/) 开发
+- 使用 [rust-lang](https://www.rust-lang.org/) 开发
 - 支持所有主流平台 *部分平台需要自行编译*
 - 保证准确率
 - TOP10签到 *TODO*
@@ -92,6 +92,9 @@ Windows 推荐使用 Release 的方式
 
 可以参考配置文件模版: [配置文件模版](https://github.com/azureqaq/tjuptattendance/blob/master/config_template.toml)
 
+- `[[users]]`: 用来设置用户信息
+- `[global]`: 全局配置信息
+
 ```toml
 # 实例配置文件, 展示高级设置
 
@@ -127,6 +130,3 @@ host = "smtp.qq.com"
 # 端口，如果不指定则是465
 port = 465
 ```
-
-- `[[users]]`: 用来设置用户信息
-- `[global]`: 全局配置信息
