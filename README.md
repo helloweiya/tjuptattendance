@@ -28,6 +28,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
   - [x] 邮件功能
   - [ ] 定时功能(TOP10签到)
   - [ ] 信息查询
+  - [ ] 优化签到耗时
 
 
 ## 安装方式
