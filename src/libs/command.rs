@@ -40,7 +40,7 @@ impl Dirs {
 
 lazy_static! {
     pub static ref DIRS: Dirs = {
-        let appdir = AppDirs::new(Some(crate_name!()), false).unwrap();
+        let appdir = AppDirs::new(Some(crate_name!()), false).expect("无法获取默认配置文件");
 
         Dirs {
             config_path: appdir.config_dir.join(CONFIG_FILENAME),

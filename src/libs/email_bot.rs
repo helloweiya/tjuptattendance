@@ -11,8 +11,8 @@ pub fn send_email(e_config: &EmailConfig, rece: &str, content: &str) -> Result<(
     let t_email = format!("YOU <{}>", rece);
 
     let email = Message::builder()
-        .from(f_email.parse().unwrap())
-        .to(t_email.parse().unwrap())
+        .from(f_email.parse()?)
+        .to(t_email.parse()?)
         .subject("TJUPT BOT STATUS")
         .body(String::from(content))?;
 
