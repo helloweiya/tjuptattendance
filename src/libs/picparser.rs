@@ -53,6 +53,9 @@ impl Kaptcha {
         let Ok(orig) = load_img(&attr, ori) else {
             return Err(anyhow!("无法获取题图的ssimimg"));
         };
+
+        // TODO 在这里改成异步，或者多线程
+        // 应该能减少很多时间
         for i in answers.iter_mut() {
             if let Err(e) = i.get_img(client).await {
                 log::warn!("无法获取海报: {}, Err: {}", i.name, e);
