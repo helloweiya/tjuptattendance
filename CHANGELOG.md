@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [1.1.4] - 2023-01-05
+### Changed
+- 优化逻辑，加快签到速度
+
 ## [1.1.3] - 2022-12-30
 ### Fixed
 - 解析邮件时，潜在的崩溃

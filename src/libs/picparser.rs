@@ -72,10 +72,10 @@ impl Kaptcha {
                 let (score, _) = attr.compare(&orig, modif);
 
                 // log::debug!("比较结果: {:.2}", co);
-                if score <= limit_min && score < min_score {
+                if score <= limit_min {
                     an = Some(i.clone());
                     min_score = score.into();
-                    continue;
+                    break;
                 }
             }
         }
