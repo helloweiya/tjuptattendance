@@ -38,6 +38,8 @@ Windows 推荐使用 Release 的方式
 
 ### 通过 Release
 - 访问 [发行版](https://github.com/azureqaq/tjuptattendance/releases) 页面，下载适合平台的最新发行版 **注意，可用的版本号 >= 1.0.0**
+  - Windows: [zip](https://github.com/azureqaq/tjuptattendance/releases/latest/download/tjuptatt-x86_64-pc-windows-msvc.zip)
+  - linux: [tar.gz](https://github.com/azureqaq/tjuptattendance/releases/latest/download/tjuptatt-x86_64-unknown-linux-gnu.tar.gz)
 - 从命令行启动: `./tjuptatt --help`
 - 根据提示使用，更详细的介绍见下节
 
