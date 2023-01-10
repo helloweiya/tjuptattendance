@@ -4,6 +4,8 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 目前已经完成基础功能，欢迎使用
 
+TOP10 专用版: [tjuptattop](https://www.3moredays.com/tjuptatt/)
+
 如果使用上有什么问题或对本项目的建议，欢迎 [新建issue](https://github.com/azureqaq/tjuptattendance/issues/new)
 
 如果你也对 `rust` 感兴趣，并且想提交代码，欢迎 **PR**
@@ -26,10 +28,7 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 - [x] 实现签到
 - [ ] 更详细的配置文件及自定义功能
   - [x] 邮件功能
-  - [ ] 定时功能(TOP10签到)
   - [ ] 信息查询
-  - [ ] 优化签到耗时
-
 
 ## 安装方式
 Windows 推荐使用 Release 的方式
