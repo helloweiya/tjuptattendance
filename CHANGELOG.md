@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.5] - 2023-01-11
+### Changed
+- 图片相似度改为百分比
+- 优化逻辑
+
 ## [1.1.4] - 2023-01-05
 ### Changed
 - 优化逻辑，加快签到速度

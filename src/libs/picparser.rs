@@ -39,13 +39,11 @@ impl Kaptcha {
         &mut self,
         answers: &mut [Answer],
         client: &Client,
-        limit_min: f64,
+        limit: f64,
     ) -> Result<Answer> {
         let mut attr = Dssim::new();
         attr.set_scales(&[100.0, 100.0]);
         self.get_img(client).await?;
-        let mut an = None;
-        let mut min_score = f64::MAX - 0.1;
         // log::debug!("设置的阈值: {}", limit);
         let Some(ref ori) = self.img_bytes else {
             return Err(anyhow!("无法获取题图"));
@@ -71,22 +69,15 @@ impl Kaptcha {
                 };
                 let (score, _) = attr.compare(&orig, modif);
 
-                // log::debug!("比较结果: {:.2}", co);
-                if score <= limit_min {
-                    an = Some(i.clone());
-                    min_score = score.into();
-                    break;
+                let score = dssim_to_percent(score.into());
+                if score <= limit {
+                    log::info!("获取答案: {} 相似度: {}%", i.name.as_str(), score);
+                    return Ok(i.clone());
                 }
             }
         }
 
-        match an {
-            None => Err(anyhow!("所有比较均失败了")),
-            Some(a) => {
-                log::info!("最高相似: {:.2}", min_score);
-                Ok(a)
-            }
-        }
+        Err(anyhow!("所有比较均失败了"))
     }
 }
 
@@ -218,4 +209,18 @@ fn reseize_pic(pic1: Bytes) -> Result<Bytes> {
     img.write_to(&mut Cursor::new(&mut buf), ImageFormat::Jpeg)?;
 
     Ok(buf.into())
+}
+
+// 将DSSIM结果转换为百分制，越高越相似
+fn dssim_to_percent(dssim: f64) -> f64 {
+    (1.0 - 2.0 * dssim.atan() / std::f64::consts::PI) * 100.0
+}
+
+#[cfg(test)]
+mod pic_test {
+    use super::*;
+    #[test]
+    fn percen_test() {
+        assert!(dssim_to_percent(0.1) >= 93.0);
+    }
 }

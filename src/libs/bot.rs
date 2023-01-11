@@ -229,7 +229,7 @@ impl TjuPtUser {
         let result = tokio::task::block_in_place(move || {
             tokio::runtime::Handle::current().block_on(async move {
                 kaptcha
-                    .compare_with_answers(&mut answers, &self.client, 0.1)
+                    .compare_with_answers(&mut answers, &self.client, 93.0)
                     .await
             })
         })?;

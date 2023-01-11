@@ -77,6 +77,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
 使用此方式来覆盖配置文件",
                 )
                 .action(ArgAction::Append)
+                .value_names(["ID", "PWD"])
                 .num_args(2),
         )
         .arg(
@@ -89,6 +90,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
                 .num_args(1)
                 .value_parser(value_parser!(u8))
                 .default_value("1")
+                .value_name("TIMES")
                 .requires("user")
                 .conflicts_with("file"),
         )
@@ -105,6 +107,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
                 .action(ArgAction::Set)
                 .default_value(config_path)
                 .num_args(1)
+                .value_name("PATH")
                 .conflicts_with("user"),
         )
         .arg(
@@ -162,6 +165,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
                         )
                         .default_value(config_path)
                         .action(ArgAction::Set)
+                        .value_name("PATH")
                         .num_args(1),
                 )
                 .arg(
@@ -177,6 +181,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
 注意：这可能覆盖已经存在的用户配置",
                         )
                         .action(ArgAction::Append)
+                        .value_names(["ID", "PWD"])
                         .num_args(2),
                 )
                 .arg(
@@ -191,6 +196,7 @@ AzureQAQ's Blog: https://www.3moredays.com/
                         )
                         .action(ArgAction::Append)
                         .num_args(1)
+                        .value_name("ID")
                         .conflicts_with("adduser"),
                 ),
         )
