@@ -70,7 +70,7 @@ impl Kaptcha {
                 let (score, _) = attr.compare(&orig, modif);
 
                 let score = dssim_to_percent(score.into());
-                if score <= limit {
+                if score >= limit {
                     log::info!("获取答案: {} 相似度: {}%", i.name.as_str(), score);
                     return Ok(i.clone());
                 }
