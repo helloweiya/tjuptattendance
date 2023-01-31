@@ -26,7 +26,7 @@ simple_logger = { version = "4.0.0", default-features = false, features = ["colo
 tokio = { version = "1.21.0", features = ["rt-multi-thread", "macros", "parking_lot"], default-features = false }
 clap = {version = "4.0.10", features = ["wrap_help", "std", "color", "cargo", "suggestions"], default-features = false }
 serde = {version = "1.0.145", features = ["derive"] }
-toml = "0.5.9"
+toml = "0.7.0"
 ahash = { version = "0.8.0", features = ["std", "serde"] }
 lazy_static = "1.4.0"
 reqwest = { version = "0.11.12", features = ["cookies", "json"] }
