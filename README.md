@@ -4,7 +4,9 @@ AzureQAQ's Blog: [3MoreDays](https://azureqaq.github.io)
 
 目前已经完成基础功能，欢迎使用
 
-TOP10 专用版: [tjuptattop](https://www.3moredays.com/tjuptatt/)
+TOP10 专用版: [tjuptattop](https://www.3moredays.com/tjuptatt/) **推荐**
+
+如果需要自定义cookies请看: [cookies](https://github.com/azureqaq/tjuptatt_release/blob/master/使用浏览器的cookie.md)
 
 如果使用上有什么问题或对本项目的建议，欢迎 [新建issue](https://github.com/azureqaq/tjuptattendance/issues/new)
 
